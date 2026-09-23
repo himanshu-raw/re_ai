@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  db:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: screening_user
+      POSTGRES_PASSWORD: screening_password
+      POSTGRES_DB: screening_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://screening_user:screening_password@db:5432/screening_db
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - db
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery_worker:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://screening_user:screening_password@db:5432/screening_db
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - db
+      - redis
+    command: celery -A app.core.celery_app worker --loglevel=info
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

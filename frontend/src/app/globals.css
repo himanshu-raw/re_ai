@@ -1,0 +1,121 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  
+  /* Custom Status Colors */
+  --color-status-ok: var(--status-ok);
+  --color-status-ok-soft: var(--status-ok-soft);
+  --color-status-warn: var(--status-warn);
+  --color-status-warn-soft: var(--status-warn-soft);
+  --color-status-bad: var(--status-bad);
+  --color-status-bad-soft: var(--status-bad-soft);
+  --color-evidence-bg: var(--evidence-bg);
+  --color-evidence-border: var(--evidence-border);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+}
+
+:root {
+  --background: #f4f6f8;
+  --foreground: #14202b;
+  --card: #ffffff;
+  --card-foreground: #14202b;
+  --popover: #ffffff;
+  --popover-foreground: #14202b;
+  --primary: #0f6b6b;
+  --primary-foreground: #ffffff;
+  --secondary: #e0f0ef;
+  --secondary-foreground: #0f6b6b;
+  --muted: #f4f6f8;
+  --muted-foreground: #5d6b78;
+  --accent: #e0f0ef;
+  --accent-foreground: #0f6b6b;
+  --destructive: #b3261e;
+  --border: #dfe5ea;
+  --input: #dfe5ea;
+  --ring: #0f6b6b;
+  --radius: 12px;
+
+  /* Custom palette */
+  --status-ok: #1b7f4b;
+  --status-ok-soft: #e1f3e8;
+  --status-warn: #9a6200;
+  --status-warn-soft: #fdf0d2;
+  --status-bad: #b3261e;
+  --status-bad-soft: #fbe4e2;
+  --hl-bg: #fff1b8;
+  --hl-border: #d9a800;
+  --hl-ink: #14202b;
+  --hl-active-bg: #ffe066;
+}
+
+.dark, :root.dark {
+  --background: #0f161c;
+  --foreground: #e8eef3;
+  --card: #171f27;
+  --card-foreground: #e8eef3;
+  --popover: #171f27;
+  --popover-foreground: #e8eef3;
+  --primary: #4fc1bd;
+  --primary-foreground: #0f161c;
+  --secondary: #16333a;
+  --secondary-foreground: #4fc1bd;
+  --muted: #171f27;
+  --muted-foreground: #93a1ad;
+  --accent: #16333a;
+  --accent-foreground: #4fc1bd;
+  --destructive: #f85149;
+  --border: #28333d;
+  --input: #28333d;
+  --ring: #4fc1bd;
+
+  /* Custom palette (Dark) */
+  --status-ok: #2ea043;
+  --status-ok-soft: #0f2d1e;
+  --status-warn: #d29922;
+  --status-warn-soft: #3d2e0a;
+  --status-bad: #f85149;
+  --status-bad-soft: #3d1414;
+  --hl-bg: #6b5400;
+  --hl-border: #ffd23f;
+  --hl-ink: #ffffff;
+  --hl-active-bg: #a07c00;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
