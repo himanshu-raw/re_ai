@@ -15,6 +15,7 @@ from app.services import explainer as explainer_module
 from typing import List, Dict, Any
 import shutil
 import os
+import json
 
 router = APIRouter()
 
@@ -100,6 +101,8 @@ def evidence_to_json(evidence_by_skill: Dict[str, list]) -> Dict[str, list]:
 async def upload_resumes(
     files: List[UploadFile] = File(...),
     jd: str = Form(None),
+    required_skills: str = Form("[]"),
+    preferred_skills: str = Form("[]"),
     db: Session = Depends(get_db),
 ):
     """
@@ -113,6 +116,37 @@ async def upload_resumes(
 
     jd_result = jd_parser.parse_jd(jd) if jd else None
     jd_weights = _jd_weights_from_parse(jd_result) if jd_result else {}
+    try:
+        custom_required = json.loads(required_skills) if required_skills else []
+        custom_preferred = json.loads(preferred_skills) if preferred_skills else []
+    except json.JSONDecodeError:
+        custom_required = []
+        custom_preferred = []
+
+    custom_required = [str(skill).strip() for skill in custom_required if str(skill).strip()]
+    custom_preferred = [str(skill).strip() for skill in custom_preferred if str(skill).strip()]
+    custom_required_keys = {skill.strip().lower() for skill in custom_required}
+    custom_preferred_keys = {skill.strip().lower() for skill in custom_preferred}
+
+    jd_weights = {
+        skill_name: weight
+        for skill_name, weight in jd_weights.items()
+        if skill_name not in custom_preferred_keys
+    }
+    raw_weights = {
+        skill_name: weight * 1.5
+        for skill_name, weight in jd_weights.items()
+        if skill_name in custom_required_keys
+    }
+    jd_weights.update(raw_weights)
+    for skill in custom_required:
+        jd_weights.setdefault(skill.lower(), 0.75)
+    for skill in custom_preferred:
+        jd_weights.setdefault(skill.lower(), 0.5)
+
+    total = sum(jd_weights.values())
+    if total > 0:
+        jd_weights = {skill_name: weight / total for skill_name, weight in jd_weights.items()}
 
     results = []
     for file in files:
@@ -157,12 +191,17 @@ async def upload_resumes(
             cards = explainer_module.build_cards(scoring_result, jd_weights)
             narrative = explainer_module.explainer.generate_explanation(cards)
 
-            must_have_skills = [s for s in (jd_result.skills if jd_result else []) if s.is_required]
+            parsed_must_have = [
+                s.skill_name.strip().lower()
+                for s in (jd_result.skills if jd_result else [])
+                if s.is_required
+            ]
+            must_have_skills = list(dict.fromkeys([*parsed_must_have, *[skill.lower() for skill in custom_required]]))
             must_have_total = len(must_have_skills)
             must_have_met = sum(
-                1 for s in must_have_skills
-                if scoring_result.per_skill.get(s.skill_name.strip().lower()) is not None
-                and scoring_result.per_skill[s.skill_name.strip().lower()].status != "Missing"
+                1 for skill_name in must_have_skills
+                if scoring_result.per_skill.get(skill_name) is not None
+                and scoring_result.per_skill[skill_name].status != "Missing"
             )
 
             response_item["score"] = round(scoring_result.overall_score * 100, 1)

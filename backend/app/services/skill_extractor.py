@@ -14,6 +14,7 @@ evidence composition -- see scoring_engine.classify_status.
 
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Optional
 
 from app.services.entry_extractor import ValidatedEntry, entry_tier, entry_delta
@@ -48,7 +49,13 @@ def _matches_alias(candidate_name: str, target_skill: str) -> bool:
 
 
 def lexical_link(entry: ValidatedEntry, skill_name: str) -> bool:
-    return any(_matches_alias(mentioned, skill_name) for mentioned in entry.skills_mentioned)
+    if any(_matches_alias(mentioned, skill_name) for mentioned in entry.skills_mentioned):
+        return True
+    target = _normalize(skill_name)
+    text = entry.text.lower()
+    if target == "rest apis":
+        return any(alias in text for alias in ("rest api", "restful api"))
+    return bool(re.search(r"(?<![a-z0-9])" + re.escape(target) + r"(?![a-z0-9])", text))
 
 
 def semantic_link_confidence(entry: ValidatedEntry, skill_name: str) -> Optional[float]:

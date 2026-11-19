@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { Hanken_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const hanken = Hanken_Grotesk({
-  variable: "--font-sans",
+const geist = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Resume Screening",
-  description: "Evidence-grounded candidate evaluation.",
+  title: "ReAI | Candidate Workspace",
+  description: "Evidence-grounded resume screening for human decision support.",
 };
 
 export default function RootLayout({
@@ -21,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${hanken.variable} antialiased selection:bg-accent selection:text-accent-foreground`}>
+      <body className={`${geist.variable} ${geistMono.variable} antialiased selection:bg-accent selection:text-accent-foreground`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

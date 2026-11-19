@@ -26,6 +26,11 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Keep the frontend's application adapter out of the Python lib/ ignore rule.
+!frontend/src/lib/
+!frontend/src/lib/backend-adapter.ts
+
 .env
 .venv
 venv/

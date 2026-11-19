@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
+import re
 from app.services.llm_wrapper import llm_wrapper
 
 class JDSkillRequirement(BaseModel):
@@ -25,8 +26,43 @@ class JDParser:
         """
 
     def parse_jd(self, jd_text: str) -> Optional[JDModelingResult]:
-        prompt = self.prompt_template.format(jd_text=jd_text)
-        result = llm_wrapper.generate_structured_output(prompt=prompt, schema=JDModelingResult)
-        return result
+        text = jd_text or ""
+        known_skills = [
+            "Python", "SQL", "Docker", "REST APIs", "REST API", "AWS",
+            "Machine Learning", "React", "React.js", "Next.js", "TypeScript",
+            "JavaScript", "FastAPI", "Django", "Flask", "PostgreSQL", "MySQL",
+            "MongoDB", "Redis", "Kubernetes", "Terraform", "Azure", "GCP",
+            "NLP", "TensorFlow", "PyTorch", "Git", "C++", "Java", "Node.js",
+            "Data Analysis", "Communication", "Leadership",
+        ]
+        found: list[JDSkillRequirement] = []
+        lower = text.lower()
+        for skill in known_skills:
+            start = lower.find(skill.lower())
+            if start < 0:
+                continue
+            before = lower[max(0, start - 60):start]
+            is_required = not any(marker in before for marker in ("nice to have", "preferred", "optional"))
+            found.append(JDSkillRequirement(
+                skill_name=skill,
+                is_required=is_required,
+                minimum_years=None,
+                importance_weight=1.0 if is_required else 0.5,
+            ))
+
+        unique: dict[str, JDSkillRequirement] = {}
+        for requirement in found:
+            key = requirement.skill_name.lower()
+            if key == "rest api":
+                key = "rest apis"
+            unique.setdefault(key, requirement)
+
+        title_match = re.search(r"(?im)^\s*(?:job title\s*:\s*)?([^\n]{3,80}\b(?:engineer|developer|analyst|manager|scientist|architect)\b)", text)
+        job_title = title_match.group(1).strip() if title_match else "Job"
+        return JDModelingResult(
+            job_title=job_title,
+            experience_level="Mid" if re.search(r"(?i)\\b(mid|senior|experience)\\b", text) else "Entry",
+            skills=list(unique.values()),
+        )
 
 jd_parser = JDParser()

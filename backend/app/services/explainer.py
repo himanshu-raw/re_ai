@@ -21,7 +21,6 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from app.services.entry_extractor import ValidatedEntry
-from app.services.llm_wrapper import llm_wrapper
 from app.services.scoring_engine import (
     ALPHA_DEFAULT,
     Evidence,
@@ -178,8 +177,19 @@ class Explainer:
         """
 
     def generate_explanation(self, cards: List[ExplanationCard]) -> Optional[ExplanationResult]:
-        prompt = self.prompt_template.format(cards_text=cards_to_text(cards))
-        return llm_wrapper.generate_structured_output(prompt=prompt, schema=ExplanationResult, temperature=0.2)
+        strengths = [card.skill for card in cards if card.status in ("Verified", "Supported")]
+        gaps = [card.skill for card in cards if card.status in ("Missing", "Listed-only")]
+        questions = [card.skill for card in cards if card.status in ("Missing", "Listed-only")][:3]
+        if gaps:
+            summary = f"{len(strengths)} required or preferred skill(s) have supporting evidence; gaps remain for {', '.join(gaps)}."
+        else:
+            summary = f"{len(strengths)} required or preferred skill(s) have supporting evidence; no major skill gaps were identified."
+        return ExplanationResult(
+            strengths=strengths or ["No verified skill strengths found"],
+            gaps=gaps or ["No major skill gaps identified"],
+            suggested_questions=[f"How have you used {skill} in practice?" for skill in questions],
+            summary=summary,
+        )
 
 
 explainer = Explainer()

@@ -16,6 +16,12 @@ export interface Skill {
   status: "matched" | "related" | "missing";
   level?: 1 | 2 | 3; // 1: Beginner, 2: Intermediate, 3: Expert
   note?: string;
+  weight?: number;
+  evidenceScore?: number;
+  freshness?: number;
+  projectScore?: number;
+  combinedScore?: number;
+  contribution?: number;
 }
 
 export interface Candidate {

@@ -25,9 +25,9 @@ export function RemoveResumeDialog({ isOpen, onOpenChange, onConfirm, label, isB
     <AlertDialog open={isOpen} onOpenChange={!isRemoving ? onOpenChange : undefined}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Remove {isBulk ? "these resumes" : "this resume"}?</AlertDialogTitle>
+          <AlertDialogTitle>Remove {isBulk ? "these resumes" : "this resume"} from Overview?</AlertDialogTitle>
           <AlertDialogDescription>
-            {isBulk ? "These resumes" : label} and {isBulk ? "their" : "its"} extracted skills, scores, and evidence will be permanently deleted.
+            {isBulk ? "These resumes" : label} will be hidden from the Overview list and remain available in Candidates and Compare.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -40,7 +40,7 @@ export function RemoveResumeDialog({ isOpen, onOpenChange, onConfirm, label, isB
             disabled={isRemoving}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isRemoving ? "Removing..." : "Remove"}
+            {isRemoving ? "Removing..." : "Remove from Overview"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

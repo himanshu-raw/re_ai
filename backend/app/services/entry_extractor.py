@@ -22,7 +22,6 @@ from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
-from app.services.llm_wrapper import llm_wrapper
 from app.services.scoring_engine import EntryType, Tier
 
 
@@ -131,11 +130,51 @@ Resume section ({section_name}):
 
 def extract_entries(section_name: str, section_text: str) -> List[ExtractedEntry]:
     clean_text = strip_invisible_text(section_text)
-    prompt = _PROMPT.format(section_name=section_name, section_text=clean_text)
-    result = llm_wrapper.generate_structured_output(prompt=prompt, schema=SectionEntries, temperature=0.0)
-    if result is None:
-        return []
-    return result.entries
+    skill_names = [
+        "Python", "SQL", "Docker", "REST APIs", "AWS", "Machine Learning",
+        "React", "React.js", "Next.js", "TypeScript", "JavaScript", "FastAPI",
+        "PostgreSQL", "MySQL", "MongoDB", "Redis", "Kubernetes", "Terraform",
+        "Azure", "GCP", "NLP", "TensorFlow", "PyTorch", "Git", "C++", "Java",
+    ]
+    section_hint = guess_entry_type(section_name)
+    etype = section_hint.value
+    entries: List[ExtractedEntry] = []
+
+    lines = [
+        re.sub(r"^\s*[•\-*]\s*", "", line).strip()
+        for line in clean_text.splitlines()
+        if line.strip()
+    ]
+    for line in lines:
+        if len(line) < 3:
+            continue
+        mentioned = [
+            skill for skill in skill_names
+            if re.search(r"(?<![a-z0-9])" + re.escape(skill.lower()) + r"(?![a-z0-9])", line.lower())
+        ]
+        if section_hint == EntryType.LIST:
+            for skill in mentioned:
+                if not re.search(r"(?<![a-z0-9])" + re.escape(skill.lower()) + r"(?![a-z0-9])", " ".join(mentioned).lower()):
+                    continue
+        date_match = re.search(r"(20\d{2})\s*(?:[-–]|to)\s*(20\d{2}|present)", line, re.I)
+        start_date = f"{date_match.group(1)}-01-01" if date_match else None
+        end_date = date_match.group(2).lower() if date_match else None
+        if end_date and end_date.isdigit():
+            end_date = f"{end_date}-12-31"
+        entries.append(ExtractedEntry(
+            etype=etype,
+            text=line,
+            start_date=start_date,
+            end_date=end_date,
+            is_quantified=bool(re.search(r"\d+\s*(%|\+|users|queries|products|skus)|\b\d{2,}\+", line, re.I)),
+            depth_cues=DepthCues(
+                tool_named=bool(mentioned),
+                action_verb_object=bool(re.search(r"\b(built|developed|designed|implemented|engineered|integrated|managed|created|automated)\b", line, re.I)),
+                duration_or_credential=bool(date_match),
+            ),
+            skills_mentioned=mentioned,
+        ))
+    return entries
 
 
 # --------------------------------------------------------------------------
