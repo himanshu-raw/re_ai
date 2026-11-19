@@ -21,6 +21,21 @@ An AI-powered resume screening tool that extracts skills, normalizes them agains
 3. Access UI at `http://localhost:3000`
 4. Access API Docs at `http://localhost:8000/docs`
 
+## Scoring model
+
+Scoring follows the evidence-grounded, skill-freshness-aware framework in
+`Research_Paper.pdf` (four tiers: parsing → skill-evidence linking →
+scoring engine → explainability). See `PAPER_MAPPING.md` for exactly which
+file implements which equation/table in the paper.
+
 ## Evaluation
-Run the evaluation suite:
-`python backend/scripts/evaluate.py`
+
+Unit tests, including a reproduction of the paper's own worked example
+(Tables IV-V) to 2 decimal places:
+```
+cd backend && python -m pytest app/tests -q
+```
+
+The evaluation-protocol stub (§VI of the paper -- baselines, ablations,
+nDCG@k) is `python backend/scripts/evaluate.py`; it currently prints
+placeholder numbers pending a real annotated dataset.

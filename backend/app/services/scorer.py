@@ -1,66 +1,82 @@
-from typing import List, Dict, Any
+"""
+Tier 3 orchestration: turns Tier 2's per-skill evidence sets into the
+composite fit score S(R,J) (Eq. 10), via app/services/scoring_engine.py.
+
+This is the thin glue layer -- JD weights in, Evidence out of Tier 2,
+semantic relevance from the taxonomy embedder, scoring_engine does the
+actual math (Eqs. 1-11). Keeping this layer thin is what lets Tier 4
+(explainer.py) claim its cards are "an exact reading of the scoring
+function" (Section IV-D) rather than an approximation of it.
+"""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import Any, Dict, List, Optional
+
+from app.services.entry_extractor import ValidatedEntry
+from app.services.scoring_engine import (
+    ScoringResult,
+    score_resume,
+    half_life_for_skill,
+)
+from app.services.skill_extractor import link_skill_evidence
 from app.services.taxonomy_manager import taxonomy_manager
-from sqlalchemy.orm import Session
+
+
+def semantic_relevance(resume_entries: List[ValidatedEntry], jd_text: str) -> float:
+    """Sem(R,J) = max(0, cos(u_R, u_J)), Section IV-C.
+
+    u_R is the mean of the per-entry embeddings (not a positional
+    concatenation), which is what keeps Sem order-invariant per D4.
+    """
+    embedder = taxonomy_manager.embedder
+    if embedder is None:
+        return 0.0
+
+    entry_texts = [e.text for e in resume_entries if e.text.strip()]
+    if not entry_texts or not jd_text.strip():
+        return 0.0
+
+    entry_vecs = embedder.encode(entry_texts)
+    # mean-pool
+    mean_vec = [sum(col) / len(entry_vecs) for col in zip(*entry_vecs)]
+    jd_vec = embedder.encode(jd_text)
+
+    dot = sum(a * b for a, b in zip(mean_vec, jd_vec))
+    norm_r = sum(a * a for a in mean_vec) ** 0.5
+    norm_j = sum(a * a for a in jd_vec) ** 0.5
+    if norm_r == 0 or norm_j == 0:
+        return 0.0
+    cos = dot / (norm_r * norm_j)
+    return max(0.0, cos)
+
 
 class Scorer:
-    def __init__(self):
-        pass
-
-    def calculate_score(self, db: Session, candidate_skills: List[Dict], jd_skills: List[Dict]) -> Dict[str, Any]:
+    def calculate_score(
+        self,
+        resume_entries: List[ValidatedEntry],
+        jd_weights: Dict[str, float],
+        jd_text: str,
+        today: Optional[date] = None,
+        half_life_overrides: Optional[Dict[str, float]] = None,
+    ) -> ScoringResult:
         """
-        Calculates a match score between a candidate and a JD.
-        Includes exact matches and semantic adjacency matches via taxonomy.
+        resume_entries: Tier 1 output (validated, typed, dated entries) for
+            this one resume.
+        jd_weights: skill_name -> w_k, as produced by Tier 1's parse of the
+            JD (app/services/jd_parser.py); should sum to 1 (Section III).
         """
-        total_score = 0.0
-        max_possible_score = 0.0
-        skill_breakdown = []
+        evidence_by_skill = link_skill_evidence(list(jd_weights.keys()), resume_entries)
+        sem = semantic_relevance(resume_entries, jd_text)
 
-        # Convert candidate skills to a set of normalized labels (in a real app, map them to concept URIs first)
-        candidate_skill_names = [s.get('skill_name', '').lower() for s in candidate_skills]
+        return score_resume(
+            required_skills=jd_weights,
+            evidence_by_skill=evidence_by_skill,
+            semantic_relevance=sem,
+            today=today,
+            half_life_overrides=half_life_overrides,
+        )
 
-        for req in jd_skills:
-            req_name = req.get('skill_name', '').lower()
-            weight = req.get('importance_weight', 1.0)
-            is_req = req.get('is_required', False)
-            
-            # Base weight modifier
-            if is_req:
-                weight *= 1.5
-                
-            max_possible_score += weight
-            
-            match_score = 0.0
-            match_type = "missing"
-            
-            # Exact Match
-            if req_name in candidate_skill_names:
-                match_score = weight
-                match_type = "exact"
-            else:
-                # Try Semantic Similarity (Adjacent Skills)
-                similar_skills = taxonomy_manager.search_similar_skills(db, req_name, top_k=3)
-                # For simplicity, if any candidate skill matches a similar skill from taxonomy with high distance
-                for sim in similar_skills:
-                    if sim.preferred_label.lower() in candidate_skill_names:
-                        # Partial credit based on distance (distance is 0 for identical, 1 for orthogonal)
-                        # We don't have exact distance here without re-computing, but assume 0.5 for demonstration
-                        match_score = weight * 0.5
-                        match_type = "adjacent"
-                        break
-
-            total_score += match_score
-            skill_breakdown.append({
-                "skill": req_name,
-                "weight": weight,
-                "match_score": match_score,
-                "match_type": match_type
-            })
-            
-        final_percentage = (total_score / max_possible_score) * 100 if max_possible_score > 0 else 0
-        
-        return {
-            "overall_score": final_percentage,
-            "breakdown": skill_breakdown
-        }
 
 scorer = Scorer()
