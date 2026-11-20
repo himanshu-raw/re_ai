@@ -194,13 +194,15 @@ export function CandidateTable({
                       key={candidate.id}
                       className={`transition-colors hover:bg-muted/40 ${selectedCandidateId === candidate.id ? "bg-primary/5" : ""}`}
                     >
-                      <td className="px-4 py-4">
-                        <Checkbox
-                          checked={selectedIds.has(candidate.id)}
-                          onCheckedChange={(checked) => onToggleSelect(candidate.id, !!checked)}
-                          aria-label={`Select ${label(candidate)}`}
-                        />
-                      </td>
+                      {allowRemoval && (
+                        <td className="px-4 py-4">
+                          <Checkbox
+                            checked={selectedIds.has(candidate.id)}
+                            onCheckedChange={(checked) => onToggleSelect(candidate.id, !!checked)}
+                            aria-label={`Select ${label(candidate)}`}
+                          />
+                        </td>
+                      )}
                       <td className="px-2 py-4 tabular-nums text-muted-foreground">{index + 1}</td>
                       <td className="px-4 py-4">
                         <button type="button" className="text-left" onClick={() => onSelectCandidate(candidate)}>

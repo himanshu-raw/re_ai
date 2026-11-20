@@ -10,12 +10,22 @@ interface JobDescriptionCardProps {
   onAnalyze: (jd: string, requiredSkills: string[], preferredSkills: string[]) => void;
   isAnalyzing: boolean;
   hasFiles: boolean;
+  initialJobDescription?: string;
+  initialRequiredSkills?: string[];
+  initialPreferredSkills?: string[];
 }
 
-export function JobDescriptionCard({ onAnalyze, isAnalyzing, hasFiles }: JobDescriptionCardProps) {
-  const [jd, setJd] = useState("");
-  const [mustHaves, setMustHaves] = useState<string[]>([]);
-  const [niceToHaves, setNiceToHaves] = useState<string[]>([]);
+export function JobDescriptionCard({
+  onAnalyze,
+  isAnalyzing,
+  hasFiles,
+  initialJobDescription = "",
+  initialRequiredSkills = [],
+  initialPreferredSkills = [],
+}: JobDescriptionCardProps) {
+  const [jd, setJd] = useState(initialJobDescription);
+  const [mustHaves, setMustHaves] = useState(initialRequiredSkills);
+  const [niceToHaves, setNiceToHaves] = useState(initialPreferredSkills);
   const [newSkill, setNewSkill] = useState("");
   const [skillType, setSkillType] = useState<"must" | "nice">("must");
 

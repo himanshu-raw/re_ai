@@ -26,6 +26,7 @@ services:
       - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://screening_user:screening_password@db:5432/screening_db
+      - DB_SSLMODE=disable
       - REDIS_URL=redis://redis:6379/0
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
@@ -40,6 +41,7 @@ services:
       - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://screening_user:screening_password@db:5432/screening_db
+      - DB_SSLMODE=disable
       - REDIS_URL=redis://redis:6379/0
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:

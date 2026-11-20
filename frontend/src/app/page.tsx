@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -115,8 +115,11 @@ export default function Home() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [hiddenFromOverviewIds, setHiddenFromOverviewIds] = useState<Set<string>>(new Set());
   const [jobDescription, setJobDescription] = useState("");
+  const [requiredSkills, setRequiredSkills] = useState<string[]>([]);
+  const [preferredSkills, setPreferredSkills] = useState<string[]>([]);
   const [blindMode, setBlindMode] = useState(false);
   const [view, setView] = useState<WorkspaceView>("overview");
+  const [isAddResumesOpen, setIsAddResumesOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string>();
   const [selectedSkillId, setSelectedSkillId] = useState<number | null>(null);
@@ -166,7 +169,10 @@ export default function Home() {
       const adapted = adaptBackendResultsToCandidates(data.results, candidates.length);
       setCandidates((previous) => [...previous, ...adapted]);
       setJobDescription(jd);
+      setRequiredSkills(requiredSkills);
+      setPreferredSkills(preferredSkills);
       setFiles([]);
+      setIsAddResumesOpen(false);
       setView("candidates");
     } catch (error) {
       console.error("Analysis failed", error);
@@ -225,10 +231,6 @@ export default function Home() {
 
   const selectedCandidate = candidates.find((candidate) => candidate.id === selectedCandidateId);
   const overviewCandidates = candidates.filter((candidate) => !hiddenFromOverviewIds.has(candidate.id));
-  const comparedCandidates = useMemo(
-    () => candidates.filter((candidate) => compareIds.has(candidate.id)),
-    [candidates, compareIds],
-  );
   const shortlist = candidates.filter((candidate) => reviewStatuses[candidate.id] === "Shortlist");
   const needsReview = candidates.filter((candidate) => candidate.needsReview).length;
   const averageScore = candidates.length
@@ -237,16 +239,12 @@ export default function Home() {
   const jobTitle = jobDescription.split(/[.!?\n]/)[0]?.trim() || "Resume screening";
 
   const openSetup = () => {
+    setIsAddResumesOpen(true);
     setView("overview");
     window.setTimeout(() => document.getElementById("screening-setup")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   };
 
   const navTo = (nextView: WorkspaceView) => {
-    if (nextView === "compare" && compareIds.size < 2) {
-      setCompareMessage("Select two or three candidates from the list to compare them.");
-      setView("candidates");
-      return;
-    }
     setCompareMessage("");
     setView(nextView);
   };
@@ -408,6 +406,26 @@ export default function Home() {
                 <MetricCard label="Needs review" value={needsReview} detail="Candidates flagged for closer review" icon={Search} tone="amber" />
                 <MetricCard label="Average match" value={`${averageScore}%`} detail="Average score from the analysis response" icon={Sparkles} />
               </div>
+              {isAddResumesOpen && (
+                <section id="screening-setup" className="scroll-mt-24">
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Add to this screening</p>
+                    <h2 className="mt-1 text-xl font-semibold tracking-tight">Upload more resumes</h2>
+                  </div>
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    <UploadCard files={files} setFiles={setFiles} />
+                    <JobDescriptionCard
+                      onAnalyze={handleAnalyze}
+                      isAnalyzing={isAnalyzing}
+                      hasFiles={files.length > 0}
+                      initialJobDescription={jobDescription}
+                      initialRequiredSkills={requiredSkills}
+                      initialPreferredSkills={preferredSkills}
+                    />
+                  </div>
+                  {isAnalyzing && <div className="mt-6"><div className="mb-3 flex items-center gap-2 text-sm font-medium"><LoaderCircle className="size-4 animate-spin text-primary" />Analyzing resumes — this may take a little while</div><CandidateSkeletons /></div>}
+                </section>
+              )}
               <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div><h2 className="font-semibold">Ranked candidates</h2><p className="mt-1 text-sm text-muted-foreground">Highest match first</p></div>
@@ -490,11 +508,13 @@ export default function Home() {
 
           {view === "compare" && (
             <CompareView
-              candidates={comparedCandidates}
+              candidates={candidates}
+              compareIds={compareIds}
               blindMode={blindMode}
               reviewStatuses={reviewStatuses}
+              compareMessage={compareMessage}
               onBack={() => setView("candidates")}
-              onRemoveFromCompare={handleToggleCompare}
+              onToggleCompare={handleToggleCompare}
               onSelectCandidate={(candidate) => { setSelectedCandidateId(candidate.id); setSelectedSkillId(null); }}
             />
           )}
