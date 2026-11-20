@@ -15,6 +15,19 @@ interface JobDescriptionCardProps {
   initialPreferredSkills?: string[];
 }
 
+function appendUniqueSkills(current: string[], incoming: string[]) {
+  const seen = new Set(current.map((skill) => skill.toLowerCase()));
+  return [
+    ...current,
+    ...incoming.filter((skill) => {
+      const normalized = skill.toLowerCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    }),
+  ];
+}
+
 export function JobDescriptionCard({
   onAnalyze,
   isAnalyzing,
@@ -30,16 +43,12 @@ export function JobDescriptionCard({
   const [skillType, setSkillType] = useState<"must" | "nice">("must");
 
   const addSkill = () => {
-    const skill = newSkill.trim();
-    if (!skill) return;
+    const skills = newSkill.split(",").map((skill) => skill.trim()).filter(Boolean);
+    if (skills.length === 0) return;
     if (skillType === "must") {
-      setMustHaves((current) =>
-        current.some((item) => item.toLowerCase() === skill.toLowerCase()) ? current : [...current, skill],
-      );
+      setMustHaves((current) => appendUniqueSkills(current, skills));
     } else {
-      setNiceToHaves((current) =>
-        current.some((item) => item.toLowerCase() === skill.toLowerCase()) ? current : [...current, skill],
-      );
+      setNiceToHaves((current) => appendUniqueSkills(current, skills));
     }
     setNewSkill("");
   };
@@ -115,8 +124,8 @@ export function JobDescriptionCard({
                   addSkill();
                 }
               }}
-              placeholder="Add a skill"
-              aria-label="Add a skill"
+              placeholder="Add skills, separated by commas"
+              aria-label="Add skills, separated by commas"
               className="h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/40"
             />
             <select

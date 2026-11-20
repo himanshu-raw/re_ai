@@ -51,6 +51,7 @@ export function EvidenceViewer({
   onNoteChange,
 }: EvidenceViewerProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const resumeEvidenceRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -62,6 +63,16 @@ export function EvidenceViewer({
   }, [onClose]);
 
   const candidateLabel = blindMode ? candidate.blindLabel : candidate.fileName;
+  const revealSkillEvidence = (skillId: number) => {
+    setSelectedSkillId(skillId);
+    const evidence = resumeEvidenceRef.current?.querySelector<HTMLElement>(
+      `[data-skill-evidence-id="${skillId}"]`,
+    );
+    (evidence ?? resumeEvidenceRef.current)?.scrollIntoView({
+      behavior: "smooth",
+      block: evidence ? "center" : "start",
+    });
+  };
   const scoreFactors = [
     { key: "Evidence", getValue: (skill: Candidate["skills"][number]) => skill.evidenceScore },
     { key: "Freshness", getValue: (skill: Candidate["skills"][number]) => skill.freshness },
@@ -100,7 +111,7 @@ export function EvidenceViewer({
 
         <div className="flex-1 overflow-y-auto">
           <div className="grid min-h-full grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
-            <section className="border-b border-border p-5 sm:p-7 xl:border-b-0 xl:border-r" aria-labelledby="resume-text-heading">
+            <section ref={resumeEvidenceRef} className="border-b border-border p-5 sm:p-7 xl:border-b-0 xl:border-r" aria-labelledby="resume-text-heading">
               <div className="mb-4">
                 <h3 id="resume-text-heading" className="font-semibold">Resume evidence</h3>
                 <p className="mt-1 text-xs text-muted-foreground">Select highlighted text to inspect its related skill.</p>
@@ -124,6 +135,7 @@ export function EvidenceViewer({
                               <button
                                 type="button"
                                 key={`${segment.skillId}-${index}`}
+                                data-skill-evidence-id={segment.skillId}
                                 onClick={() => setSelectedSkillId(segment.skillId ?? null)}
                                 className={`rounded px-1 text-left transition-colors ${selected ? "bg-amber-300 text-slate-950 ring-1 ring-amber-500" : "bg-amber-100 text-slate-900 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-50"}`}
                                 aria-label={`Evidence for ${skill?.name ?? "skill"}`}
@@ -160,7 +172,7 @@ export function EvidenceViewer({
                       <button
                         key={skill.id}
                         type="button"
-                        onClick={() => setSelectedSkillId(selectedSkillId === skill.id ? null : skill.id)}
+                        onClick={() => revealSkillEvidence(skill.id)}
                         className={`w-full rounded-xl border p-3 text-left transition-all hover:border-primary/40 ${selectedSkillId === skill.id ? "border-primary/50 bg-primary/5 shadow-sm" : "border-border bg-card"}`}
                         aria-pressed={selectedSkillId === skill.id}
                       >
@@ -200,11 +212,15 @@ export function EvidenceViewer({
                       key={status}
                       type="button"
                       variant={reviewStatus === status ? "default" : "outline"}
-                      className="rounded-lg px-2 text-xs sm:text-sm"
+                      className="w-full min-w-0 justify-center gap-0.5 rounded-lg px-2 text-[11px] leading-5"
                       onClick={() => onSetReviewStatus(status)}
                       aria-pressed={reviewStatus === status}
                     >
-                      {status === "Shortlist" && <Check className="mr-1 size-4" />}
+                      {status === "Shortlist" && (
+                        <span className="grid size-4 shrink-0 place-items-center">
+                          <Check aria-hidden="true" className="size-3" />
+                        </span>
+                      )}
                       {status}
                     </Button>
                   ))}
