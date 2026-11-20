@@ -30,6 +30,7 @@ ALPHA_DEFAULT = 0.3   # weight of semantic relevance Sem(R,J) in Eq. (10)
 KAPPA_DEFAULT = 0.3   # weight of the project term P_k in Eq. (8)
 PHI_DEFAULT = 0.2     # recency floor so old-but-real evidence doesn't vanish
 SEMANTIC_LINK_THRESHOLD = 0.5  # theta: cosine similarity cutoff for a semantic link
+SCORE_LENIENCY_MULTIPLIER = 1.4
 
 
 class EntryType(str, Enum):
@@ -287,6 +288,11 @@ def coverage(weights: Dict[str, float], competence: Dict[str, float]) -> float:
 
 def composite_fit(sem: float, cov: float, alpha: float = ALPHA_DEFAULT) -> float:
     return alpha * sem + (1 - alpha) * cov
+
+
+def apply_score_leniency(score: float) -> float:
+    """Increase the reviewer-facing score by 40%, capped at the 100-point maximum."""
+    return min(max(score, 0.0) * SCORE_LENIENCY_MULTIPLIER, 1.0)
 
 
 def gap_term(weight: float, competence: float, alpha: float = ALPHA_DEFAULT) -> float:

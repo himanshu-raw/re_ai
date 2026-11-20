@@ -18,6 +18,7 @@ from app.services.scoring_engine import (
     Evidence,
     EntryType,
     Tier,
+    apply_score_leniency,
     make_listing_evidence,
     score_resume,
     classify_status,
@@ -121,6 +122,14 @@ def test_candidate_b_outranks_candidate_a():
     rA = score_resume(WEIGHTS, candidate_a_evidence(), semantic_relevance=0.71, today=TODAY)
     rB = score_resume(WEIGHTS, candidate_b_evidence(), semantic_relevance=0.74, today=TODAY)
     assert rB.overall_score > rA.overall_score
+
+
+@pytest.mark.parametrize(
+    "raw_score,expected",
+    [(0.0, 0.0), (0.5, 0.7), (0.8, 1.0), (1.0, 1.0)],
+)
+def test_score_leniency_increases_by_40_percent_and_caps_at_100(raw_score, expected):
+    assert apply_score_leniency(raw_score) == pytest.approx(expected)
 
 
 def test_listing_only_skill_has_freshness_equal_to_floor():

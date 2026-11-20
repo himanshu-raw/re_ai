@@ -11,6 +11,7 @@ from app.services.entry_extractor import (
 )
 from app.services.jd_parser import jd_parser
 from app.services.scorer import scorer
+from app.services.scoring_engine import apply_score_leniency
 from app.services import explainer as explainer_module
 from typing import List, Dict, Any
 import shutil
@@ -204,7 +205,8 @@ async def upload_resumes(
                 and scoring_result.per_skill[skill_name].status != "Missing"
             )
 
-            response_item["score"] = round(scoring_result.overall_score * 100, 1)
+            adjusted_score = apply_score_leniency(scoring_result.overall_score)
+            response_item["score"] = round(adjusted_score * 100, 1)
             response_item["coverage"] = round(scoring_result.coverage, 3)
             response_item["semantic_relevance"] = round(scoring_result.semantic_relevance, 3)
             response_item["skill_cards"] = [explainer_module.card_to_dict(c) for c in cards]
@@ -216,9 +218,10 @@ async def upload_resumes(
                 {s: scoring_result.per_skill[s].evidences for s in scoring_result.per_skill}
             )
             candidate.skill_evidence = candidate.extracted_skills
-            candidate.score = scoring_result.overall_score
+            candidate.score = adjusted_score
             candidate.scoring_result = {
-                "overall_score": scoring_result.overall_score,
+                "overall_score": adjusted_score,
+                "raw_overall_score": scoring_result.overall_score,
                 "coverage": scoring_result.coverage,
                 "semantic_relevance": scoring_result.semantic_relevance,
                 "skill_cards": response_item["skill_cards"],
